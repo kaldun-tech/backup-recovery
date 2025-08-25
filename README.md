@@ -1,53 +1,85 @@
 # Backup Recovery Suite
 
-A comprehensive backup and recovery solution for Windows and Linux systems, supporting multiple storage backends including cloud services and physical drives.
+A comprehensive backup and recovery solution implementing a hybrid 3-2-1-1-0 backup strategy with support for multiple storage tiers including AWS S3, Proton Drive, and local air-gapped storage.
 
-## Overview
+## Architecture
 
-Backup Recovery Suite provides automated, reliable backup and recovery capabilities for personal and professional use. The system supports incremental backups, scheduled operations, and multiple storage destinations to ensure your data is always protected.
-
-## Storage Backends
-
-- **Proton Drive**: Secure, encrypted cloud storage
-- **Amazon Web Services (AWS)**: S3 bucket storage with lifecycle policies  
-- **Physical Hard Drives**: Local and external drive support
-- **Multi-destination**: Simultaneous backup to multiple locations for redundancy
-
-## Platform Support
-
-- **Windows**: Full filesystem backup with VSS support
-- **Linux**: Native filesystem operations with extended attributes
-- **Cross-platform**: Consistent CLI and configuration across operating systems
-
-## Key Features
-
-- Incremental and differential backup strategies
-- Automated scheduling and monitoring
-- Encryption at rest and in transit
-- Deduplication to minimize storage usage
-- Point-in-time recovery with granular file restoration
-- Configuration-driven backup policies
-- Progress tracking and detailed logging
+The system implements a tiered backup strategy:
+- **Tier 1 (AWS)**: Primary cloud storage with intelligent tiering
+- **Tier 2 (Proton Drive)**: Encrypted storage for sensitive data  
+- **Tier 3 (Local)**: Air-gapped storage for critical files
 
 ## Quick Start
 
+### Setup Environment
+
 ```bash
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
 # Install dependencies
-pip install -r requirements.txt
+pip install -r scripts/requirements.txt
 
-# Initialize configuration
-python -m backup_recovery init
-
-# Create your first backup
-python -m backup_recovery backup --profile home-documents
-
-# List available backups
-python -m backup_recovery list
-
-# Restore files
-python -m backup_recovery restore --backup-id <id> --destination ./restored
+# Create required directories
+mkdir -p ~/.backup-recovery/logs ~/.backup-recovery/summaries
 ```
+
+### Configuration
+
+Copy and customize the configuration template:
+
+```bash
+cp configs/backup-profiles.yaml configs/my-config.yaml
+# Edit configs/my-config.yaml with your settings
+```
+
+📖 **For detailed configuration guidance**: See [Configuration Guide](docs/CONFIGURATION_GUIDE.md) for data organization, AWS storage strategies, and hardware setup.
+
+### Run Backup
+
+```bash
+cd scripts
+python backup-orchestrator.py --profile test-profile --config ../configs/test-config.yaml
+```
+
+### Test Mode
+
+```bash
+python backup-orchestrator.py --profile test-profile --config ../configs/test-config.yaml --test
+```
+
+## Testing
+
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# Run tests
+python -m pytest tests/ -v
+
+# Run tests with coverage
+python -m pytest tests/ -v --cov=scripts --cov-report=html
+```
+
+## Project Structure
+
+- `scripts/` - Main Python modules
+  - `backup-orchestrator.py` - Main orchestration script
+  - `*_backup_manager.py` - Storage tier implementations
+- `configs/` - Configuration templates and files
+- `tests/` - Test suite
+- `docs/` - Documentation
+- `cloudformation/` - AWS infrastructure templates
 
 ## Development Status
 
-Currently in active development. Core backup and recovery functionality is being implemented with a focus on reliability, security, and ease of use.
+Core functionality implemented and ready for testing. The system provides:
+
+- ✅ Multi-tier backup orchestration
+- ✅ Local backup with metadata tracking
+- ✅ Configuration-driven file discovery and classification
+- ✅ Comprehensive test suite
+- 🔄 AWS S3 integration (placeholder)
+- 🔄 Proton Drive integration (placeholder)
+- 🔄 Scheduling and automation
