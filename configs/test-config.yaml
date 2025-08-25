@@ -1,0 +1,52 @@
+# Test Configuration for Backup Recovery Suite
+# Minimal working configuration for testing
+
+profiles:
+  test-profile:
+    name: "Test Profile"
+    description: "Basic test configuration"
+    tier: 1
+    enabled: true
+    
+    paths:
+      - path: "/tmp/test-backup-source"
+        include: 
+          - "**/*.txt"
+          - "**/*.md"
+        exclude:
+          - "**/temp/**"
+        enabled: true
+
+# Configuration for each backup tier
+aws:
+  enabled: false  # Disabled for testing
+  region: "us-east-1"
+  bucket: "test-backup-bucket"
+  access_key_id: ""
+  secret_access_key: ""
+
+proton:
+  enabled: false  # Disabled for testing
+  username: ""
+  password: ""
+  sync_folder: "/tmp/proton-sync"
+
+local:
+  enabled: true
+  backup_directory: "/tmp/local-backups"
+  compression: true
+  encryption: false
+
+# Data classification rules
+classification:
+  sensitive:
+    keywords:
+      - "secret"
+      - "password"
+      - "key"
+    file_extensions:
+      - ".key"
+      - ".pem"
+  critical:
+    patterns:
+      - "**/*config*"

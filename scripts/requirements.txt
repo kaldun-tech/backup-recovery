@@ -18,7 +18,7 @@ keyring>=23.0.0  # Secure credential storage
 python-gnupg>=0.5.0  # GPG encryption for Proton Drive compatibility
 
 # Compression and archiving
-python-lz4>=3.1.0  # Fast compression
+lz4>=3.1.0  # Fast compression
 zstandard>=0.19.0  # High-efficiency compression
 py7zr>=0.20.0  # 7zip support for Windows compatibility
 
@@ -49,7 +49,6 @@ watchdog>=2.2.0  # File system monitoring
 send2trash>=1.8.0  # Safe file deletion
 
 # Database (for backup metadata)
-sqlite3  # Built-in Python module
 sqlalchemy>=1.4.0  # ORM for backup metadata
 alembic>=1.9.0  # Database migrations
 
