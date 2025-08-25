@@ -1,0 +1,67 @@
+# Backup Recovery Suite - Python Dependencies
+# Adapted from AWS POC disaster recovery requirements
+
+# Core libraries
+pyyaml>=6.0
+pathlib2>=2.3.0  # Python 2/3 compatibility for older systems
+click>=8.0.0  # CLI interface
+colorama>=0.4.0  # Cross-platform colored terminal output
+
+# AWS integration
+boto3>=1.26.0
+botocore>=1.29.0
+aws-encryption-sdk>=3.1.0
+
+# Cryptography and security
+cryptography>=3.4.0
+keyring>=23.0.0  # Secure credential storage
+python-gnupg>=0.5.0  # GPG encryption for Proton Drive compatibility
+
+# Compression and archiving
+python-lz4>=3.1.0  # Fast compression
+zstandard>=0.19.0  # High-efficiency compression
+py7zr>=0.20.0  # 7zip support for Windows compatibility
+
+# Monitoring and logging
+prometheus-client>=0.15.0  # Metrics collection
+psutil>=5.9.0  # System monitoring
+rich>=12.0.0  # Enhanced console output
+structlog>=22.3.0  # Structured logging
+
+# Scheduling and task management
+schedule>=1.2.0  # Job scheduling
+APScheduler>=3.10.0  # Advanced scheduling
+celery>=5.2.0  # Distributed task queue (optional)
+
+# Network and HTTP
+requests>=2.28.0
+urllib3>=1.26.0
+httpx>=0.24.0  # Async HTTP client
+
+# Configuration and validation
+marshmallow>=3.19.0  # Schema validation
+jsonschema>=4.17.0  # JSON schema validation
+python-dotenv>=0.21.0  # Environment variable management
+
+# Cross-platform utilities
+platformdirs>=2.6.0  # Platform-specific directories
+watchdog>=2.2.0  # File system monitoring
+send2trash>=1.8.0  # Safe file deletion
+
+# Database (for backup metadata)
+sqlite3  # Built-in Python module
+sqlalchemy>=1.4.0  # ORM for backup metadata
+alembic>=1.9.0  # Database migrations
+
+# Testing and development
+pytest>=7.2.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+black>=22.12.0  # Code formatting
+flake8>=6.0.0  # Linting
+mypy>=0.991  # Type checking
+
+# Platform-specific dependencies
+pywin32>=227; sys_platform == "win32"  # Windows COM access
+python-magic>=0.4.27; sys_platform != "win32"  # Unix file type detection
+python-magic-bin>=0.4.14; sys_platform == "win32"  # Windows file type detection

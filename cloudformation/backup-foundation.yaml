@@ -1,0 +1,289 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Backup Recovery Suite - AWS Backup Foundation'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: 'backup-recovery-suite'
+    Description: 'Project name for resource naming'
+  
+  BackupRetentionDays:
+    Type: Number
+    Default: 90
+    Description: 'Number of days to retain backup data'
+  
+  CrossRegionDestination:
+    Type: String
+    Default: 'us-west-2'
+    Description: 'Destination region for cross-region replication'
+
+Resources:
+  # S3 Bucket for backup storage
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-primary-backup-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: IntelligentTiering
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: 90
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: 365
+      NotificationConfiguration:
+        CloudWatchConfigurations:
+          - Event: s3:ObjectCreated:*
+            CloudWatchConfiguration:
+              LogGroupName: !Ref BackupLogGroup
+
+  # AWS Backup Vault
+  BackupVault:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Sub '${ProjectName}-vault'
+      EncryptionKeyArn: !GetAtt BackupKMSKey.Arn
+      Notifications:
+        BackupVaultEvents:
+          - BACKUP_JOB_STARTED
+          - BACKUP_JOB_COMPLETED
+          - BACKUP_JOB_FAILED
+          - RESTORE_JOB_STARTED
+          - RESTORE_JOB_COMPLETED
+        SNSTopicArn: !Ref BackupNotificationTopic
+
+  # KMS Key for backup encryption
+  BackupKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: 'KMS Key for Backup Recovery Suite encryption'
+      KeyPolicy:
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow AWS Backup
+            Effect: Allow
+            Principal:
+              Service: backup.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey
+            Resource: '*'
+
+  BackupKMSAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${ProjectName}-backup-key'
+      TargetKeyId: !Ref BackupKMSKey
+
+  # IAM Role for AWS Backup Service
+  BackupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-backup-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: backup.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores
+
+  # IAM User for backup operations (least-privilege)
+  BackupUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub '${ProjectName}-backup-user'
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: BackupOperations
+
+  # Backup User Access Keys (managed separately)
+  BackupUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref BackupUser
+
+  # Granular IAM Policy for backup operations
+  BackupUserPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-backup-user-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # S3 Bucket Operations
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetBucketLocation
+              - s3:GetBucketVersioning
+              - s3:ListBucketVersions
+              - s3:ListBucketMultipartUploads
+            Resource: !Sub '${BackupBucket}/*'
+          # S3 Object Operations  
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+              - s3:AbortMultipartUpload
+              - s3:ListMultipartUploadParts
+            Resource: !Sub '${BackupBucket}/*'
+          # Glacier Operations
+          - Effect: Allow
+            Action:
+              - glacier:InitiateJob
+              - glacier:DescribeJob
+              - glacier:GetJobOutput
+              - glacier:ListJobs
+            Resource: '*'
+          # CloudWatch Logs (monitoring)
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:DescribeLogStreams
+            Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${BackupLogGroup}:*'
+          # Explicit deny for dangerous operations
+          - Effect: Deny
+            Action:
+              - s3:DeleteBucket
+              - s3:PutBucketPolicy
+              - s3:PutBucketAcl
+            Resource: '*'
+      Users:
+        - !Ref BackupUser
+
+  # Backup Plan
+  BackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub '${ProjectName}-plan'
+        BackupPlanRule:
+          - RuleName: DailyBackups
+            TargetBackupVault: !Ref BackupVault
+            ScheduleExpression: 'cron(0 2 * * ? *)'  # Daily at 2 AM
+            StartWindowMinutes: 60
+            CompletionWindowMinutes: 120
+            Lifecycle:
+              MoveToColdStorageAfterDays: 30
+              DeleteAfterDays: !Ref BackupRetentionDays
+            RecoveryPointTags:
+              BackupType: Daily
+              Project: !Ref ProjectName
+          - RuleName: WeeklyBackups
+            TargetBackupVault: !Ref BackupVault
+            ScheduleExpression: 'cron(0 3 ? * SUN *)'  # Weekly on Sunday at 3 AM
+            StartWindowMinutes: 60
+            CompletionWindowMinutes: 240
+            Lifecycle:
+              MoveToColdStorageAfterDays: 7
+              DeleteAfterDays: 365
+            RecoveryPointTags:
+              BackupType: Weekly
+              Project: !Ref ProjectName
+
+  # SNS Topic for notifications
+  BackupNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${ProjectName}-backup-notifications'
+
+  # CloudWatch Log Group
+  BackupLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/backup/${ProjectName}'
+      RetentionInDays: 30
+
+  # CloudWatch Dashboard
+  BackupDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub '${ProjectName}-backup-monitoring'
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["AWS/Backup", "NumberOfBackupJobsCompleted"],
+                  [".", "NumberOfBackupJobsFailed"]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Backup Job Status"
+              }
+            },
+            {
+              "type": "log",
+              "properties": {
+                "query": "SOURCE '${BackupLogGroup}' | fields @timestamp, @message\n| sort @timestamp desc\n| limit 20",
+                "region": "${AWS::Region}",
+                "title": "Recent Backup Logs"
+              }
+            }
+          ]
+        }
+
+Outputs:
+  BackupVaultArn:
+    Description: 'ARN of the backup vault'
+    Value: !GetAtt BackupVault.BackupVaultArn
+    Export:
+      Name: !Sub '${ProjectName}-backup-vault-arn'
+
+  BackupBucketName:
+    Description: 'Name of the primary backup bucket'
+    Value: !Ref BackupBucket
+    Export:
+      Name: !Sub '${ProjectName}-backup-bucket-name'
+
+  BackupRoleArn:
+    Description: 'ARN of the backup service role'
+    Value: !GetAtt BackupRole.Arn
+    Export:
+      Name: !Sub '${ProjectName}-backup-role-arn'
+
+  BackupUserAccessKeyId:
+    Description: 'Access Key ID for backup user (store securely)'
+    Value: !Ref BackupUserAccessKey
+    Export:
+      Name: !Sub '${ProjectName}-backup-user-access-key-id'
+
+  BackupUserSecretAccessKey:
+    Description: 'Secret Access Key for backup user (store securely)'
+    Value: !GetAtt BackupUserAccessKey.SecretAccessKey
+    Export:
+      Name: !Sub '${ProjectName}-backup-user-secret-key'
+
+  KMSKeyId:
+    Description: 'KMS Key ID for backup encryption'
+    Value: !Ref BackupKMSKey
+    Export:
+      Name: !Sub '${ProjectName}-backup-kms-key-id'

@@ -1,0 +1,148 @@
+# Backup Profile Templates
+# Adapted from AWS POC disaster recovery patterns for hybrid tiered strategy
+# Copy and customize these templates for your specific needs
+
+# Global configuration settings
+global:
+  version: "1.0"
+  created: "2025-01-01"
+  compression:
+    enabled: true
+    level: 6  # 1-9, higher = better compression but slower
+    format: "zip"  # zip, tar.gz, tar.bz2
+  
+  # Scheduling options
+  schedule:
+    timezone: "UTC"
+    frequency: "daily"  # daily, weekly, monthly
+    time: "02:00"  # 24-hour format
+    
+  # Advanced settings
+  advanced:
+    max_file_size_mb: 1024  # Skip files larger than this
+    max_concurrent_uploads: 3
+    retry_attempts: 3
+    retry_delay_seconds: 30
+    
+  # Notification settings
+  notifications:
+    email:
+      enabled: false
+      smtp_server: ""
+      recipients: []
+    success_summary: true
+    failure_alerts: true
+
+profiles:
+  # AWS Tier 1 - Primary bulk storage
+  aws-primary:
+    name: "AWS Primary Backup"
+    description: "Primary backup tier for bulk data using AWS S3 with intelligent tiering"
+    tier: 1
+    storage_backend: "aws-s3"
+    encryption: "aws-kms"
+    enabled: true
+    
+    # Retention policies adapted from POC patterns
+    retention:
+      daily: 30    # Keep daily backups for 30 days
+      weekly: 52   # Keep weekly backups for 1 year
+      monthly: 84  # Keep monthly backups for 7 years
+      yearly: 10   # Keep yearly backups for 10 years
+      
+    # Lifecycle management
+    lifecycle:
+      standard_ia: 30
+      glacier_flexible: 90
+      glacier_deep: 365
+      
+    # High availability settings
+    cross_region: true
+    versioning: true
+    target_rpo: 3600  # 1 hour
+    target_rto: 14400  # 4 hours
+    
+    # Path configuration
+    paths:
+      - path: "$HOME/Documents"
+        include: 
+          - "**/*.pdf"
+          - "**/*.docx"
+          - "**/*.xlsx"
+        exclude:
+          - "**/temp/**"
+          - "**/.DS_Store"
+          - "**/Thumbs.db"
+        enabled: true
+        
+      - path: "$HOME/Projects"
+        include:
+          - "**/*.py"
+          - "**/*.js" 
+          - "**/*.yaml"
+          - "**/*.json"
+        exclude:
+          - "**/node_modules/**"
+          - "**/.git/**"
+          - "**/__pycache__/**"
+        enabled: true
+    
+  # Proton Drive Tier 2 - Sensitive data
+  proton-sensitive:
+    name: "Proton Sensitive Data"  
+    tier: 2
+    storage_backend: "proton-drive"
+    encryption: "proton-zero-access"
+    data_types:
+      - "financial_records"
+      - "identity_documents" 
+      - "encryption_keys"
+      - "compliance_files"
+    max_size: "6TB"
+    sync_mode: "real-time"
+    retention: "indefinite"
+    
+  # Local Tier 3 - Air-gapped storage
+  local-airgapped:
+    name: "Local Air-Gapped Backup"
+    tier: 3
+    storage_backend: "external-hdd"
+    encryption: "aes-256"
+    rotation_schedule: "quarterly"
+    backup_type: "full-system-image"
+    verification_required: true
+    offline_storage: true
+    retention: "2-years-rolling"
+
+# Data classification rules
+classification:
+  sensitive:
+    keywords:
+      - "financial"
+      - "ssn"
+      - "passport"
+      - "private_key"
+      - "certificate"
+    file_extensions:
+      - ".key"
+      - ".p12" 
+      - ".pem"
+    routes_to: "proton-sensitive"
+    
+  bulk:
+    default_tier: "aws-primary"
+    exclude_patterns:
+      - "*.tmp"
+      - "*.log"
+      - "node_modules/*"
+      - ".git/*"
+      
+  critical:
+    patterns:
+      - "/etc/passwd"
+      - "/etc/shadow"
+      - "~/.ssh/*"
+      - "config.json"
+    routes_to: 
+      - "aws-primary"
+      - "local-airgapped"  # Dual backup for critical files
