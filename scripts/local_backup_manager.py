@@ -9,7 +9,7 @@ import shutil
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,26 +24,27 @@ class LocalBackupManager:
         self.backup_dir = Path(config.get('backup_directory', '/tmp/local-backups'))
         self.compression = config.get('compression', False)
         self.encryption = config.get('encryption', False)
-    
+        self.backup_metadata = 'backup-metadata.json'
+
         # Create backup directory
         self.backup_dir.mkdir(parents=True, exist_ok=True)
-    
+
         if not self.enabled:
             logger.info("Local backup is disabled in configuration")
-        
+
     def backup_files(self, files: List[Path], profile: str) -> bool:
         """Backup files to local storage"""
         if not self.enabled:
-            logger.info(f"Local backup skipped for {len(files)} files (disabled)")
+            logger.info("Local backup skipped for %d files (disabled)", len(files))
             return True
-        
+
         try:
-            logger.info(f"Local backup starting for {len(files)} files")
-        
+            logger.info("Local backup starting for %d files", len(files))
+
             # Create backup-specific directory
             backup_path = self.backup_dir / self.backup_id
             backup_path.mkdir(parents=True, exist_ok=True)
-        
+
             # Backup metadata
             metadata = {
                 'backup_id': self.backup_id,
@@ -52,7 +53,7 @@ class LocalBackupManager:
                 'files_count': len(files),
                 'files': []
             }
-        
+
             # Copy files
             successful_files = 0
             for file_path in files:
@@ -62,11 +63,11 @@ class LocalBackupManager:
                         rel_path = file_path.relative_to(file_path.anchor)
                         dest_path = backup_path / rel_path
                         dest_path.parent.mkdir(parents=True, exist_ok=True)
-                    
+
                         # Copy file
                         shutil.copy2(file_path, dest_path)
                         successful_files += 1
-                    
+
                         # Add to metadata
                         metadata['files'].append({
                             'source': str(file_path),
@@ -74,99 +75,99 @@ class LocalBackupManager:
                             'size': file_path.stat().st_size,
                             'status': 'success'
                         })
-                    
-                        logger.debug(f"Backed up {file_path} to {dest_path}")
-                    
-                except Exception as e:
-                    logger.error(f"Failed to backup {file_path}: {e}")
+
+                        logger.debug("Backed up %s to %s", file_path, dest_path)
+
+                except OSError as e:
+                    logger.error("Failed to backup %s: %s", file_path, e, exc_info=True)
                     metadata['files'].append({
                         'source': str(file_path),
                         'status': 'failed',
-                        'error': str(e)
+                        'error': str(e),
+                        'error_type': type(e).__name__
                     })
-        
+
             # Save metadata
-            metadata_file = backup_path / 'backup-metadata.json'
-            with open(metadata_file, 'w') as f:
+            metadata_file = backup_path / self.backup_metadata
+            with open(metadata_file, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2)
-            
-            logger.info(f"Local backup completed: {successful_files}/{len(files)} files successful")
+
+            logger.info("Local backup completed: %d/%d files successful", successful_files, len(files))
             return successful_files > 0
-        
-        except Exception as e:
-            logger.error(f"Local backup failed: {e}")
+
+        except (OSError, json.JSONEncodeError) as e:
+            logger.error("Local backup failed: %s", e, exc_info=True)
             return False
-        
+
     def restore_files(self, backup_id: str, target_path: Path) -> bool:
         """Restore files from local backup"""
         if not self.enabled:
             logger.info("Local restore skipped (disabled)")
             return True
-        
+
         try:
-            logger.info(f"Local restore starting for backup {backup_id}")
-        
+            logger.info("Local restore starting for backup %s", backup_id)
+
             # Find backup directory
             backup_path = self.backup_dir / backup_id
             if not backup_path.exists():
-                logger.error(f"Backup directory not found: {backup_path}")
+                logger.error("Backup directory not found: %s", backup_path)
                 return False
-            
+
             # Read metadata
-            metadata_file = backup_path / 'backup-metadata.json'
+            metadata_file = backup_path / self.backup_metadata
             if not metadata_file.exists():
-                logger.error(f"Backup metadata not found: {metadata_file}")
+                logger.error("Backup metadata not found: %s", metadata_file)
                 return False
-            
-            with open(metadata_file, 'r') as f:
+
+            with open(metadata_file, 'r', encoding='utf-8') as f:
                 metadata = json.load(f)
-            
+
             # Restore files
             target_path.mkdir(parents=True, exist_ok=True)
             successful_restores = 0
-        
+
             for file_info in metadata.get('files', []):
                 if file_info.get('status') != 'success':
                     continue
-                
+
                 try:
                     source_path = Path(file_info['destination'])
                     if source_path.exists():
                         # Use original filename in target directory
                         original_name = Path(file_info['source']).name
                         dest_path = target_path / original_name
-                    
                         shutil.copy2(source_path, dest_path)
                         successful_restores += 1
-                        logger.debug(f"Restored {source_path} to {dest_path}")
-                    
-                except Exception as e:
-                    logger.error(f"Failed to restore {file_info['source']}: {e}")
-        
-            logger.info(f"Local restore completed: {successful_restores} files restored")
+                        logger.debug("Restored %s to %s", source_path, dest_path)
+
+                except (OSError, KeyError) as e:
+                    logger.error("Failed to restore %s: %s", file_info.get('source', 'unknown'), e, exc_info=True)
+
+            logger.info("Local restore completed: %d files restored", successful_restores)
             return successful_restores > 0
-        
-        except Exception as e:
-            logger.error(f"Local restore failed: {e}")
+
+        except (OSError, json.JSONDecodeError, KeyError) as e:
+            logger.error("Local restore failed: %s", e, exc_info=True)
             return False
-        
+
     def list_backups(self) -> List[Dict[str, Any]]:
         """List available backups"""
         backups = []
-    
+
         try:
             for backup_dir in self.backup_dir.iterdir():
                 if backup_dir.is_dir():
-                    metadata_file = backup_dir / 'backup-metadata.json'
+                    metadata_file = backup_dir / self.backup_metadata
                     if metadata_file.exists():
                         try:
-                            with open(metadata_file, 'r') as f:
+                            with open(metadata_file, 'r', encoding='utf-8') as f:
                                 metadata = json.load(f)
                                 backups.append(metadata)
-                        except Exception as e:
-                            logger.error(f"Failed to read metadata for {backup_dir}: {e}")
-                        
-        except Exception as e:
-            logger.error(f"Failed to list backups: {e}")
-        
+                        except (OSError, json.JSONDecodeError) as e:
+                            logger.error("Failed to read metadata for %s: %s", backup_dir, e, exc_info=True)
+
+        except OSError as e:
+            logger.error("Failed to list backups: %s", e, exc_info=True)
+
         return backups

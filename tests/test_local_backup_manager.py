@@ -3,18 +3,18 @@
 Tests for LocalBackupManager
 """
 
-import pytest
-import tempfile
 import json
-from pathlib import Path
 import shutil
 import sys
-import os
+import tempfile
+from pathlib import Path
 
-# Add scripts directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+import pytest
 
-from local_backup_manager import LocalBackupManager
+# Add project root to path for absolute imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from scripts.local_backup_manager import LocalBackupManager
 
 
 @pytest.fixture
@@ -120,9 +120,9 @@ class TestLocalBackupManager:
         metadata_file = backup_path / 'backup-metadata.json'
         assert metadata_file.exists()
 
-        with open(metadata_file, 'r') as f:
+        with open(metadata_file, 'r', encoding='utf-8') as f:
             metadata = json.load(f)
-        
+
         assert metadata['backup_id'] == backup_manager.backup_id
         assert metadata['profile'] == 'test-profile'
         assert metadata['files_count'] == 2
@@ -133,7 +133,7 @@ class TestLocalBackupManager:
             dest_path = Path(file_info['destination'])
             assert dest_path.exists()
             assert file_info['status'] == 'success'
-        
+
     def test_backup_nonexistent_files(self, backup_manager):
         """Test backup of non-existent files"""
         files = [
@@ -145,20 +145,20 @@ class TestLocalBackupManager:
 
         # Should return False as no files were successfully backed up
         assert result is False
-    
+
         # Check metadata file exists and contains error information
         backup_path = backup_manager.backup_dir / backup_manager.backup_id
         metadata_file = backup_path / 'backup-metadata.json'
-    
+
         if metadata_file.exists():
-            with open(metadata_file, 'r') as f:
+            with open(metadata_file, 'r', encoding='utf-8') as f:
                 metadata = json.load(f)
-            
+
             # All files should have failed status
             for file_info in metadata['files']:
                 assert file_info['status'] == 'failed'
                 assert 'error' in file_info
-            
+
     def test_backup_mixed_success_failure(self, backup_manager, test_files):
         """Test backup with mix of existing and non-existent files"""
         files = [
@@ -176,7 +176,7 @@ class TestLocalBackupManager:
         backup_path = backup_manager.backup_dir / backup_manager.backup_id
         metadata_file = backup_path / 'backup-metadata.json'
 
-        with open(metadata_file, 'r') as f:
+        with open(metadata_file, 'r', encoding='utf-8') as f:
             metadata = json.load(f)
 
         success_count = sum(1 for f in metadata['files'] if f['status'] == 'success')
@@ -208,33 +208,33 @@ class TestLocalBackupManager:
         files = [test_files / 'file1.txt', test_files / 'file2.txt']
         backup_result = backup_manager.backup_files(files, 'test-profile')
         assert backup_result is True
-    
+
         # Now restore to a different location
         restore_dir = Path(tempfile.mkdtemp())
-    
+
         try:
             result = backup_manager.restore_files(backup_manager.backup_id, restore_dir)
             assert result is True
-        
+
             # Check restored files
             restored_files = list(restore_dir.glob('*.txt'))
             assert len(restored_files) == 2
-        
+
             file_names = [f.name for f in restored_files]
             assert 'file1.txt' in file_names
             assert 'file2.txt' in file_names
-        
+
             # Check file contents
             for restored_file in restored_files:
                 if restored_file.name == 'file1.txt':
                     assert restored_file.read_text() == 'content of file 1'
                 elif restored_file.name == 'file2.txt':
                     assert restored_file.read_text() == 'content of file 2'
-                
+
         finally:
             # Cleanup restore directory
             shutil.rmtree(restore_dir)
-        
+
     def test_list_backups_empty(self, backup_manager):
         """Test listing backups when none exist"""
         backups = backup_manager.list_backups()
@@ -245,7 +245,7 @@ class TestLocalBackupManager:
         # Create first backup
         files1 = [test_files / 'file1.txt']
         backup_manager.backup_files(files1, 'profile1')
-    
+
         # Create second backup with different ID
         backup_manager2 = LocalBackupManager(
             backup_manager.config,
@@ -253,7 +253,7 @@ class TestLocalBackupManager:
         )
         files2 = [test_files / 'file2.txt']
         backup_manager2.backup_files(files2, 'profile2')
-    
+
         # List backups
         backups = backup_manager.list_backups()
 
@@ -274,18 +274,18 @@ class TestLocalBackupManager:
             test_files / 'file1.txt',
             test_files / 'subdir' / 'file3.txt'
         ]
-    
+
         result = backup_manager.backup_files(files, 'test-profile')
         assert result is True
-    
+
         # Check that subdirectory structure is preserved
         backup_path = backup_manager.backup_dir / backup_manager.backup_id
-    
+
         # Check metadata for correct destination paths
         metadata_file = backup_path / 'backup-metadata.json'
-        with open(metadata_file, 'r') as f:
+        with open(metadata_file, 'r', encoding='utf-8') as f:
             metadata = json.load(f)
-        
+
         # Should have preserved the relative path structure
         destinations = [f['destination'] for f in metadata['files']]
         assert any('file1.txt' in dest for dest in destinations)

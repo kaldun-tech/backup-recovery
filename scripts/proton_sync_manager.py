@@ -6,7 +6,7 @@ Placeholder implementation for testing purposes
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
@@ -18,42 +18,51 @@ class ProtonSyncManager:
         self.config = config
         self.backup_id = backup_id
         self.enabled = config.get('enabled', False)
-    
+
         if not self.enabled:
             logger.info("Proton Drive sync is disabled in configuration")
-        
+
     def sync_files(self, files: List[Path], profile: str) -> bool:
         """Sync files to Proton Drive"""
         if not self.enabled:
             logger.info(f"Proton sync skipped for {len(files)} files (disabled)")
             return True
-        
+
         try:
-            logger.info(f"Proton sync starting for {len(files)} sensitive files")
-        
+            logger.info("Proton sync starting for %d sensitive files", len(files))
+
             # Placeholder implementation
             for file_path in files:
-                logger.debug(f"Would sync {file_path} to Proton Drive")
+                logger.debug("Would sync %s to Proton Drive", file_path)
+                # Verify file exists and is accessible
+                if not file_path.exists():
+                    raise FileNotFoundError(f"File not found: {file_path}")
+                if not file_path.is_file():
+                    raise ValueError(f"Not a file: {file_path}")
+
             logger.info("Proton sync completed successfully (placeholder)")
             return True
-        
-        except Exception as e:
-            logger.error(f"Proton sync failed: {e}")
+
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            logger.error("File operation failed during Proton sync: %s", e)
             return False
-        
+
     def download_files(self, backup_id: str, target_path: Path) -> bool:
         """Download files from Proton Drive"""
         if not self.enabled:
             logger.info("Proton download skipped (disabled)")
             return True
-        
+
         try:
-            logger.info(f"Proton download starting for backup {backup_id}")
-        
+            logger.info("Proton download starting for backup %s", backup_id)
+
             # Placeholder implementation
+            if not target_path.exists():
+                target_path.mkdir(parents=True, exist_ok=True)
+
             logger.info("Proton download completed successfully (placeholder)")
             return True
-        
-        except Exception as e:
-            logger.error(f"Proton download failed: {e}")
+
+        except Exception:  # Catch all exceptions and log them
+            logger.exception("Error during Proton download")
             return False

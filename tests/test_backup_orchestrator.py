@@ -5,9 +5,9 @@ Tests for BackupOrchestrator
 
 import pytest
 import tempfile
-import json
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+import shutil
 import sys
 import os
 
@@ -77,7 +77,6 @@ def test_files():
     yield temp_dir
 
     # Cleanup
-    import shutil
     shutil.rmtree(temp_dir)
 
 
@@ -87,39 +86,39 @@ class TestBackupOrchestrator:
     def test_init(self, temp_config):
         """Test BackupOrchestrator initialization"""
         orchestrator = BackupOrchestrator(temp_config)
-    
+
         assert orchestrator.config is not None
         assert orchestrator.backup_id.startswith('backup-')
         assert 'start_time' in orchestrator.stats
-    
+
     def test_load_config_missing_file(self):
         """Test loading configuration from missing file"""
         with pytest.raises(SystemExit):
             BackupOrchestrator('/nonexistent/config.yaml')
-        
+
     def test_generate_backup_id(self, orchestrator):
         """Test backup ID generation"""
         backup_id1 = orchestrator._generate_backup_id()
         backup_id2 = orchestrator._generate_backup_id()
-    
+
         assert backup_id1.startswith('backup-')
         assert backup_id2.startswith('backup-')
         # IDs should be different due to timestamp
         assert backup_id1 != backup_id2
-    
+
     def test_discover_files(self, orchestrator, test_files):
         """Test file discovery"""
         # Update config to use test directory
         orchestrator.config['profiles']['test-profile']['paths'][0]['path'] = str(test_files)
-    
+
         profile = orchestrator.config['profiles']['test-profile']
         files = orchestrator._discover_files(profile)
-    
+
         # Should find test.txt but not temp/temp.txt (excluded)
         assert len(files) >= 1
         assert any(f.name == 'test.txt' for f in files)
         assert not any('temp' in str(f) for f in files)
-    
+
     def test_classify_data(self, orchestrator, test_files):
         """Test data classification"""
         files = [
@@ -127,45 +126,45 @@ class TestBackupOrchestrator:
             test_files / 'secret.key',
             test_files / 'config.json'
         ]
-    
+
         classification = orchestrator._classify_data(files)
-    
+
         # Check sensitive file classification
         sensitive_files = [f.name for f in classification['proton_sensitive']]
         assert 'secret.key' in sensitive_files
-    
+
         # Check critical file classification
         critical_files = [f.name for f in classification['local_airgapped']]
         assert 'config.json' in critical_files
-    
+
     @patch('backup_orchestrator.AWSBackupManager')
     def test_backup_to_aws(self, mock_aws_manager, orchestrator, test_files):
         """Test AWS backup"""
         mock_manager = Mock()
         mock_manager.backup_files.return_value = True
         mock_aws_manager.return_value = mock_manager
-    
+
         files = [test_files / 'test.txt']
         result = orchestrator._backup_to_aws(files, 'test-profile')
-    
+
         assert result is True
         mock_aws_manager.assert_called_once()
         mock_manager.backup_files.assert_called_once_with(files, 'test-profile')
-    
+
     @patch('backup_orchestrator.ProtonSyncManager')
     def test_backup_to_proton(self, mock_proton_manager, orchestrator, test_files):
         """Test Proton Drive backup"""
         mock_manager = Mock()
         mock_manager.sync_files.return_value = True
         mock_proton_manager.return_value = mock_manager
-    
+
         files = [test_files / 'secret.key']
         result = orchestrator._backup_to_proton(files, 'test-profile')
-    
+
         assert result is True
         mock_proton_manager.assert_called_once()
         mock_manager.sync_files.assert_called_once_with(files, 'test-profile')
-    
+
     @patch('backup_orchestrator.LocalBackupManager')
     def test_backup_to_local(self, mock_local_manager, orchestrator, test_files):
         """Test local backup"""
