@@ -267,7 +267,7 @@ Encryption software: Free (LUKS/VeraCrypt)
 
 1. **Dry Run Mode**
    ```bash
-   python backup-orchestrator.py --profile test --config my-config.yaml --test
+   python backup_orchestrator.py --profile test --config my-config.yaml --test
    ```
 
 2. **Small Dataset Test**
@@ -424,7 +424,7 @@ After=network.target
 [Service]
 Type=oneshot
 User=your-username
-ExecStart=/path/to/.venv/bin/python /path/to/scripts/backup-orchestrator.py --profile production --config /path/to/config.yaml
+ExecStart=/path/to/.venv/bin/python /path/to/scripts/backup_orchestrator.py --profile production --config /path/to/config.yaml
 EOF
 
 # Create timer
@@ -452,7 +452,7 @@ sudo systemctl start backup-recovery.timer
 crontab -e
 
 # Add daily backup at 2 AM
-0 2 * * * /path/to/.venv/bin/python /path/to/scripts/backup-orchestrator.py --profile production --config /path/to/config.yaml
+0 2 * * * /path/to/.venv/bin/python /path/to/scripts/backup_orchestrator.py --profile production --config /path/to/config.yaml
 ```
 
 ### Monitoring and Alerting

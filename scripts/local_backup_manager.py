@@ -77,6 +77,16 @@ class LocalBackupManager:
                         })
 
                         logger.debug("Backed up %s to %s", file_path, dest_path)
+                    else:
+                        # File doesn't exist or isn't a regular file
+                        error_msg = f"File does not exist or is not a regular file: {file_path}"
+                        logger.error(error_msg)
+                        metadata['files'].append({
+                            'source': str(file_path),
+                            'status': 'failed',
+                            'error': error_msg,
+                            'error_type': 'FileNotFoundError'
+                        })
 
                 except OSError as e:
                     logger.error("Failed to backup %s: %s", file_path, e, exc_info=True)

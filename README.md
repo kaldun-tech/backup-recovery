@@ -40,13 +40,13 @@ cp configs/backup-profiles.yaml configs/my-config.yaml
 
 ```bash
 cd scripts
-python backup-orchestrator.py --profile test-profile --config ../configs/test-config.yaml
+python backup_orchestrator.py --profile test-profile --config ../configs/test-config.yaml
 ```
 
 ### Test Mode
 
 ```bash
-python backup-orchestrator.py --profile test-profile --config ../configs/test-config.yaml --test
+python backup_orchestrator.py --profile test-profile --config ../configs/test-config.yaml --test
 ```
 
 ## Testing
@@ -65,7 +65,7 @@ python -m pytest tests/ -v --cov=scripts --cov-report=html
 ## Project Structure
 
 - `scripts/` - Main Python modules
-  - `backup-orchestrator.py` - Main orchestration script
+  - `backup_orchestrator.py` - Main orchestration script
   - `*_backup_manager.py` - Storage tier implementations
 - `configs/` - Configuration templates and files
 - `tests/` - Test suite
