@@ -1,159 +1,50 @@
 # Implementation Strategy
 
-## Hybrid 3-2-1-1-0 Backup Strategy
+Simple backup approach using multiple storage locations for redundancy.
 
-Based on comprehensive research analysis, implementing a tiered approach optimizing cost, security, and reliability.
+## Basic Concept
 
-## Phase 1: AWS Backup Foundation (Weeks 1-2)
+Following a simplified 3-2-1 strategy:
+- **3 copies** of important data
+- **2 different storage types** (cloud + local)
+- **1 offsite** backup
 
-### Objectives
-- **RTO**: 4 hours for critical systems
-- **RPO**: 1 hour for critical data
-- **Cost**: $3-8/TB monthly with intelligent tiering
+## Storage Tiers
 
-### Implementation Steps
-1. Deploy CloudFormation stack (`backup-foundation.yaml`)
-2. Configure automated backup policies for AWS resources
-3. Set up S3 lifecycle policies:
-   - Standard → Intelligent-Tiering (immediate)
-   - Glacier Flexible Retrieval (30 days)
-   - Glacier Deep Archive (90 days)
-4. Enable cross-region replication
-5. Test backup and restore procedures
+### AWS S3 - Primary Cloud Storage
+- Most files go here by default
+- Cost-effective for bulk storage
+- Built-in durability and availability
 
-### Success Criteria
-- Daily automated backups running
-- Cross-region replication verified  
-- Recovery time < 4 hours for test restore
-- Monitoring dashboards operational
+### Proton Drive - Sensitive Data
+- Files with sensitive content (based on keywords/file types)
+- End-to-end encrypted
+- Limited to important sensitive files only
 
-## Phase 2: Proton Drive Integration (Week 3)
+### Local Storage - Critical Files
+- Important files also backed up locally
+- External drive or local directory
+- Air-gapped from internet threats
 
-### Selective Data Strategy
-Focus on high-value, privacy-sensitive data:
-- Configuration files and secrets
-- Legal and compliance documents  
-- Personal identification documents
-- Encryption keys and certificates
+## Implementation Approach
 
-### Implementation
-- Audit current Proton Drive usage (6TB limit)
-- Implement automated sync for sensitive directories
-- Document emergency access procedures
-- Create offline backup of Proton credentials
+1. **Start simple**: Get AWS backups working first
+2. **Add classification**: Route sensitive files to Proton Drive
+3. **Add local backups**: Copy critical files locally
+4. **Test restore**: Verify you can get your files back
 
-### Cost Optimization
-- Limit to essential sensitive data only
-- Use existing Proton subscription efficiently
-- Avoid bulk storage in expensive tier
+## Data Classification
 
-## Phase 3: Local Air-Gapped Storage (Week 4)
+Files are automatically routed based on:
+- **Sensitive keywords** in filename/path → Proton Drive
+- **Critical patterns** → AWS + Local (redundant)  
+- **Everything else** → AWS only
 
-### Physical Storage Strategy
-- External HDDs with quarterly rotation
-- Offline storage in secure location
-- Encrypted backup images
-- Manual verification procedures
+## Configuration
 
-### Implementation
-```bash
-# Automated offline backup creation
-backup-recovery create-offline-backup --profile critical-systems
-backup-recovery verify-offline-backup --path /media/backup-drive
-```
+Set up your backup profiles in `~/.backup-recovery/config.yaml` with:
+- Paths to backup
+- Classification rules
+- Storage credentials
 
-### Rotation Schedule
-- **Quarterly**: Full system backup to new drive
-- **Monthly**: Incremental updates to current drive  
-- **Weekly**: Verification of offline backup integrity
-
-## Data Classification and Routing
-
-### Tier 1 (AWS): Bulk Data
-- Application data and databases
-- User files and documents  
-- System images and configurations
-- Development repositories
-
-### Tier 2 (Proton): Sensitive Data
-- Financial records
-- Identity documents
-- Encryption keys
-- Compliance-critical files
-
-### Tier 3 (Local): Air-Gapped Copies
-- Complete system images
-- Critical configuration backups
-- Disaster recovery essentials
-- Offline verification data
-
-## Retention Policies
-
-### AWS S3/Glacier
-- **Daily backups**: 30 days (Standard)
-- **Weekly backups**: 12 months (Glacier Flexible)  
-- **Monthly backups**: 7 years (Deep Archive)
-- **Critical configs**: Indefinite (Immutable)
-
-### Proton Drive
-- **Sensitive documents**: Indefinite retention
-- **Active configurations**: Real-time sync
-- **Archived sensitive data**: Manual management
-
-### Local Storage
-- **System images**: 2 years rolling
-- **Critical backups**: Permanent archive
-- **Verification data**: 1 year retention
-
-## Monitoring and Alerting
-
-### AWS CloudWatch Metrics
-- Backup job success/failure rates
-- Storage utilization and costs
-- Cross-region replication lag
-- Recovery point objectives
-
-### Proton Drive Monitoring  
-- Sync status verification
-- Storage quota utilization
-- Access log monitoring
-- Credential rotation alerts
-
-### Local Storage Health
-- Drive integrity checks
-- Rotation schedule compliance
-- Verification test results
-- Physical security audits
-
-## Cost Optimization Framework
-
-### Target Costs (per TB/month)
-- **AWS Tier**: $3-8 (intelligent tiering)
-- **Proton Tier**: $25.98 (sensitive data only)  
-- **Local Tier**: $2.50 (amortized hardware)
-- **Total Blended**: $5-12 per TB
-
-### Optimization Strategies
-- Aggressive deduplication and compression
-- Intelligent data placement algorithms
-- Automated lifecycle management  
-- Regular cost analysis and optimization
-
-## Security Framework
-
-### Encryption Standards
-- **AWS**: KMS with customer-managed keys
-- **Proton**: Zero-access client-side encryption
-- **Local**: AES-256 full-disk encryption
-
-### Access Controls
-- Multi-factor authentication required
-- Role-based access permissions
-- Audit logging for all operations
-- Regular access reviews and rotation
-
-### Compliance Considerations
-- GDPR compliance through Swiss jurisdiction (Proton)
-- AWS compliance certifications
-- Data residency requirements
-- Retention policy enforcement
+Keep it simple - start with basic functionality and add complexity only as needed.

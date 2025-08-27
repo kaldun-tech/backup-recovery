@@ -1,69 +1,59 @@
 # Testing Procedures
 
-## Backup Testing
+Simple testing approach to verify backup functionality.
 
-### Unit Tests
-- Individual component functionality
-- Storage backend connectivity  
-- Encryption/decryption operations
-- Configuration validation
+## Basic Testing
 
-### Integration Tests
-- End-to-end backup workflows
-- Multi-backend synchronization
-- Cross-platform compatibility
-- Error handling and recovery
-
-### Performance Tests
-- Large file backup efficiency
-- Incremental backup performance
-- Network bandwidth utilization
-- Storage optimization validation
-
-## Disaster Recovery Testing
-
-### Recovery Verification
-- Complete system restore from backup
-- Selective file recovery
-- Point-in-time recovery accuracy
-- Metadata integrity validation
-
-### Failure Scenarios
-- Storage backend unavailability
-- Network interruption handling
-- Partial backup corruption
-- System crash during operations
-
-## Automated Testing
-
-### Continuous Integration
-- Automated test execution on code changes
-- Cross-platform testing matrix
-- Performance regression detection
-- Security vulnerability scanning
-
-### Scheduled DR Tests
-- Monthly full recovery simulations
-- Quarterly cross-platform validation
-- Annual disaster recovery exercises
-- Backup integrity verification
-
-## Test Environment Setup
-
-### Local Testing
+### Test Backup Operation
 ```bash
-# Setup test environment
-python -m backup_recovery test-setup
+# Run a test backup with verbose output
+python backup_orchestrator.py --profile test --verbose
 
-# Run test suite
-pytest tests/ -v
-
-# Performance benchmarks
-python -m backup_recovery benchmark
+# Check if backup completed successfully
+echo $?  # Should return 0 for success
 ```
 
-### Cloud Testing
-- Isolated test buckets/drives
-- Limited scope test data
-- Automated cleanup procedures
-- Cost monitoring and alerts
+### Verify Configuration
+```bash
+# Test mode - validates config without actual backup
+python backup_orchestrator.py --profile production --test
+```
+
+### Check Backup Results
+```bash
+# View backup summary
+ls ~/.backup-recovery/summaries/
+cat ~/.backup-recovery/summaries/backup-YYYYMMDD-HHMMSS-summary.json
+
+# Check logs for errors
+tail ~/.backup-recovery/logs/orchestrator.log
+```
+
+## Restore Testing
+
+### Manual Restore Verification
+Since restore functionality is still in development, manually verify you can access your backed up files:
+
+1. **AWS S3**: Use AWS CLI or console to download a few test files
+2. **Local backups**: Check that files exist in your backup location
+3. **Proton Drive**: Verify files are synced and accessible
+
+### Simple Test Files
+Create a small test directory to backup:
+```bash
+mkdir ~/backup-test
+echo "test content $(date)" > ~/backup-test/test-file.txt
+# Add this path to your backup profile for testing
+```
+
+## Automated Tests
+```bash
+# Run existing test suite
+python -m pytest tests/ -v
+```
+
+## Troubleshooting Failed Tests
+1. Check configuration file syntax
+2. Verify credentials are set up correctly
+3. Ensure target directories exist and are writable
+4. Check network connectivity for cloud backups
