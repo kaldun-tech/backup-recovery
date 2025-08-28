@@ -15,11 +15,11 @@ The system implements a tiered backup strategy:
 
 ```bash
 # Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r scripts/requirements.txt
+pip install -r requirements.txt
 
 # Create required directories
 mkdir -p ~/.backup-recovery/logs ~/.backup-recovery/summaries
@@ -53,7 +53,7 @@ python backup_orchestrator.py --profile test-profile --config ../configs/test-co
 
 ```bash
 # Activate virtual environment
-source .venv/bin/activate
+source venv/bin/activate
 
 # Run tests
 python -m pytest tests/ -v
