@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from proton_sync_manager import ProtonSyncManager
+from .proton_sync_manager import ProtonSyncManager
 import yaml
 
 # Configure logging
@@ -149,7 +149,7 @@ class BackupOrchestrator:
             logger.info("Starting AWS backup for %d files", len(files))
 
             # Import AWS backup manager
-            from aws_backup_manager import AWSBackupManager
+            from .aws_backup_manager import AWSBackupManager
 
             aws_manager = AWSBackupManager(
                 self.config['aws'],
@@ -198,7 +198,7 @@ class BackupOrchestrator:
             logger.info("Starting local backup for %d critical files", len(files))
 
             # Import local backup manager
-            from local_backup_manager import LocalBackupManager
+            from .local_backup_manager import LocalBackupManager
 
             local_manager = LocalBackupManager(
                 self.config['local'],
