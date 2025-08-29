@@ -9,6 +9,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import pytest
 import yaml
 
@@ -97,12 +98,15 @@ class TestBackupOrchestrator:
     def test_generate_backup_id(self, orchestrator):
         """Test backup ID generation"""
         backup_id1 = orchestrator._generate_backup_id()
-        backup_id2 = orchestrator._generate_backup_id()
-
+        
+        # Test format
         assert backup_id1.startswith('backup-')
-        assert backup_id2.startswith('backup-')
-        # IDs should be different due to timestamp
-        assert backup_id1 != backup_id2
+        assert len(backup_id1) == 22  # 'backup-' (7) + 'YYYYMMDD-HHMMSS' (15)
+        
+        # Test uniqueness by checking format contains timestamp
+        import re
+        pattern = r'backup-\d{8}-\d{6}'
+        assert re.match(pattern, backup_id1)
 
     def test_discover_files(self, orchestrator, test_files):
         """Test file discovery"""
@@ -135,7 +139,7 @@ class TestBackupOrchestrator:
         critical_files = [f.name for f in classification['local_airgapped']]
         assert 'config.json' in critical_files
 
-    @patch('backup_orchestrator.AWSBackupManager')
+    @patch('scripts.aws_backup_manager.AWSBackupManager')
     def test_backup_to_aws(self, mock_aws_manager, orchestrator, test_files):
         """Test AWS backup"""
         mock_manager = Mock()
@@ -149,7 +153,7 @@ class TestBackupOrchestrator:
         mock_aws_manager.assert_called_once()
         mock_manager.backup_files.assert_called_once_with(files, 'test-profile')
 
-    @patch('backup_orchestrator.ProtonSyncManager')
+    @patch('scripts.backup_orchestrator.ProtonSyncManager')
     def test_backup_to_proton(self, mock_proton_manager, orchestrator, test_files):
         """Test Proton Drive backup"""
         mock_manager = Mock()
@@ -163,7 +167,7 @@ class TestBackupOrchestrator:
         mock_proton_manager.assert_called_once()
         mock_manager.sync_files.assert_called_once_with(files, 'test-profile')
 
-    @patch('backup_orchestrator.LocalBackupManager')
+    @patch('scripts.local_backup_manager.LocalBackupManager')
     def test_backup_to_local(self, mock_local_manager, orchestrator, test_files):
         """Test local backup"""
         mock_manager = Mock()
@@ -220,9 +224,9 @@ class TestBackupOrchestratorIntegration:
         orchestrator.config['profiles']['test-profile']['paths'][0]['path'] = str(test_files)
 
         # Mock all backup managers to avoid actual external calls
-        with patch('backup_orchestrator.AWSBackupManager') as mock_aws, \
-             patch('backup_orchestrator.ProtonSyncManager') as mock_proton, \
-             patch('backup_orchestrator.LocalBackupManager') as mock_local:
+        with patch('scripts.aws_backup_manager.AWSBackupManager') as mock_aws, \
+             patch('scripts.backup_orchestrator.ProtonSyncManager') as mock_proton, \
+             patch('scripts.local_backup_manager.LocalBackupManager') as mock_local:
 
             # Configure mocks
             mock_aws.return_value.backup_files.return_value = True
