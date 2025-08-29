@@ -12,8 +12,8 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from .proton_sync_manager import ProtonSyncManager
 import yaml
+from proton_sync_manager import ProtonSyncManager
 
 # Configure logging
 logging.basicConfig(
