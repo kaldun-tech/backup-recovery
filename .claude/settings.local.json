@@ -11,7 +11,8 @@
       "Bash(gh run view:*)",
       "Bash(python -m pylint:*)",
       "Bash(pylint:*)",
-      "Bash(python3 -m pytest:*)"
+      "Bash(python3 -m pytest:*)",
+      "Bash(python -m pytest:*)"
     ],
     "deny": [],
     "ask": []
