@@ -16,14 +16,22 @@ import yaml
 from scripts.proton_sync_manager import ProtonSyncManager
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(Path.home() / '.backup-recovery/logs/orchestrator.log', mode='a')
-    ]
-)
+def _setup_logging():
+    """Set up logging handlers, creating directories as needed"""
+    log_dir = Path.home() / '.backup-recovery/logs'
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_dir / 'orchestrator.log', mode='a')
+        ]
+    )
+
+
+_setup_logging()
 logger = logging.getLogger(__name__)
 
 
