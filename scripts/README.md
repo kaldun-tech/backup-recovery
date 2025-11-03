@@ -38,9 +38,12 @@ python backup_orchestrator.py --emergency-restore --backup-id latest
 ## Configuration
 
 Scripts use configuration from:
-- `../configs/backup-profiles.yaml` - Backup profile definitions
-- `~/.backup-recovery/config.yaml` - User-specific settings  
+- `../configs/simple-backup.yaml` - Backup profile template (copy and customize)
+- `../configs/local/` - User-specific personal configurations (Git-ignored)
+- `~/.backup-recovery/config.yaml` - User-specific settings
 - Environment variables for sensitive credentials
+
+**Note**: Store your personal backup configurations in `../configs/local/` to keep them out of version control.
 
 ## Requirements
 
