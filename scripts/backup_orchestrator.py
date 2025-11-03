@@ -13,7 +13,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 import yaml
-from proton_sync_manager import ProtonSyncManager
+from scripts.proton_sync_manager import ProtonSyncManager
 
 # Configure logging
 logging.basicConfig(
