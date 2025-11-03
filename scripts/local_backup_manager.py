@@ -102,7 +102,9 @@ class LocalBackupManager:
             with open(metadata_file, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2)
 
-            logger.info("Local backup completed: %d/%d files successful", successful_files, len(files))
+            logger.info(
+                "Local backup completed: %d/%d files successful",
+                successful_files, len(files))
             return successful_files > 0
 
         except (OSError, json.JSONEncodeError) as e:
@@ -152,7 +154,9 @@ class LocalBackupManager:
                         logger.debug("Restored %s to %s", source_path, dest_path)
 
                 except (OSError, KeyError) as e:
-                    logger.error("Failed to restore %s: %s", file_info.get('source', 'unknown'), e, exc_info=True)
+                    logger.error(
+                        "Failed to restore %s: %s",
+                        file_info.get('source', 'unknown'), e, exc_info=True)
 
             logger.info("Local restore completed: %d files restored", successful_restores)
             return successful_restores > 0
@@ -175,7 +179,9 @@ class LocalBackupManager:
                                 metadata = json.load(f)
                                 backups.append(metadata)
                         except (OSError, json.JSONDecodeError) as e:
-                            logger.error("Failed to read metadata for %s: %s", backup_dir, e, exc_info=True)
+                            logger.error(
+                                "Failed to read metadata for %s: %s",
+                                backup_dir, e, exc_info=True)
 
         except OSError as e:
             logger.error("Failed to list backups: %s", e, exc_info=True)

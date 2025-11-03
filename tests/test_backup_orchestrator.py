@@ -9,7 +9,6 @@ import os
 import shutil
 import sys
 import tempfile
-import time
 import pytest
 import yaml
 
@@ -98,11 +97,11 @@ class TestBackupOrchestrator:
     def test_generate_backup_id(self, orchestrator):
         """Test backup ID generation"""
         backup_id1 = orchestrator._generate_backup_id()
-        
+
         # Test format
         assert backup_id1.startswith('backup-')
         assert len(backup_id1) == 22  # 'backup-' (7) + 'YYYYMMDD-HHMMSS' (15)
-        
+
         # Test uniqueness by checking format contains timestamp
         import re
         pattern = r'backup-\d{8}-\d{6}'
@@ -207,12 +206,9 @@ class TestBackupOrchestrator:
         # Should not raise an exception
         orchestrator._log_summary()
 
-        # Check that summary file would be created in the right location
-        expected_dir = Path.home() / '.backup-recovery/summaries'
-        summary_file_pattern = f"{orchestrator.backup_id}-summary.json"
-
-        # We can't easily test file creation without mocking, but we can test the method runs
-        assert True  # Method completed without error
+        # We can't easily test file creation without mocking,
+        # but we can test the method runs without error
+        assert True
 
 
 class TestBackupOrchestratorIntegration:

@@ -254,19 +254,19 @@ class BackupOrchestrator:
 
         if classified_files['aws_primary']:
             results.append(self._backup_to_aws(
-                classified_files['aws_primary'], 
+                classified_files['aws_primary'],
                 profile_name
             ))
 
         if classified_files['proton_sensitive']:
             results.append(self._backup_to_proton(
-                classified_files['proton_sensitive'], 
+                classified_files['proton_sensitive'],
                 profile_name
             ))
 
         if classified_files['local_airgapped']:
             results.append(self._backup_to_local(
-                classified_files['local_airgapped'], 
+                classified_files['local_airgapped'],
                 profile_name
             ))
 

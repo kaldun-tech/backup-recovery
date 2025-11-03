@@ -23,7 +23,7 @@ class AWSBackupManager:
         if not self.enabled:
             logger.info("AWS backup is disabled in configuration")
 
-    def backup_files(self, files: List[Path], profile: str) -> bool:
+    def backup_files(self, files: List[Path], _profile: str) -> bool:
         """Backup files to AWS S3/Glacier"""
         if not self.enabled:
             logger.info("AWS backup skipped for %d files (disabled)", len(files))
@@ -48,10 +48,12 @@ class AWSBackupManager:
             logger.error("File system error during AWS backup: %s", e)
             return False
         except (ValueError, TypeError) as e:
-            logger.critical("Invalid configuration or file data for AWS backup: %s", e, exc_info=True)
+            logger.critical(
+                "Invalid configuration or file data for AWS backup: %s",
+                e, exc_info=True)
             return False
 
-    def restore_files(self, backup_id: str, target_path: Path) -> bool:
+    def restore_files(self, backup_id: str, _target_path: Path) -> bool:
         """Restore files from AWS backup"""
         if not self.enabled:
             logger.info("AWS restore skipped (disabled)")

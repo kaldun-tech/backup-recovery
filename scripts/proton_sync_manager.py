@@ -22,7 +22,7 @@ class ProtonSyncManager:
         if not self.enabled:
             logger.info("Proton Drive sync is disabled in configuration")
 
-    def sync_files(self, files: List[Path], profile: str) -> bool:
+    def sync_files(self, files: List[Path], _profile: str) -> bool:
         """Sync files to Proton Drive"""
         if not self.enabled:
             logger.info(f"Proton sync skipped for {len(files)} files (disabled)")
@@ -63,9 +63,9 @@ class ProtonSyncManager:
             logger.info("Proton download completed successfully (placeholder)")
             return True
 
-        except (OSError, IOError, FileNotFoundError) as e:
-            logger.exception("File system error during Proton download: %s", e)
-            return False
         except PermissionError as e:
             logger.exception("Permission denied during Proton download: %s", e)
+            return False
+        except (OSError, IOError, FileNotFoundError) as e:
+            logger.exception("File system error during Proton download: %s", e)
             return False

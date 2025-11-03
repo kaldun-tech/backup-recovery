@@ -6,7 +6,12 @@
       "Bash(source:*)",
       "Bash(pip install:*)",
       "Bash(python -m pytest tests/ -v)",
-      "Bash(python -m pytest tests/ -v --cov=scripts --cov-report=html)"
+      "Bash(python -m pytest tests/ -v --cov=scripts --cov-report=html)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh run view:*)",
+      "Bash(python -m pylint:*)",
+      "Bash(pylint:*)",
+      "Bash(python3 -m pytest:*)"
     ],
     "deny": [],
     "ask": []
