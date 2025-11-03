@@ -165,8 +165,11 @@ class BackupOrchestrator:
                 logger.error("AWS backup failed")
             return success
 
-        except Exception as e:
-            logger.error("AWS backup error: %s", e)
+        except ImportError as e:
+            logger.error("Failed to import AWS backup manager: %s", e)
+            return False
+        except (KeyError, TypeError) as e:
+            logger.error("Invalid AWS configuration: %s", e)
             return False
 
     def _backup_to_proton(self, files: List[Path], profile: str) -> bool:
@@ -188,8 +191,11 @@ class BackupOrchestrator:
                 logger.error("Proton backup failed")
             return success
 
-        except Exception as e:
-            logger.error("Proton backup error: %s", e)
+        except (KeyError, TypeError) as e:
+            logger.error("Invalid Proton configuration: %s", e)
+            return False
+        except (FileNotFoundError, PermissionError) as e:
+            logger.error("File access error during Proton backup: %s", e)
             return False
 
     def _backup_to_local(self, files: List[Path], profile: str) -> bool:
@@ -214,8 +220,14 @@ class BackupOrchestrator:
                 logger.error("Local backup failed")
             return success
 
-        except Exception as e:
-            logger.error("Local backup error: %s", e)
+        except ImportError as e:
+            logger.error("Failed to import local backup manager: %s", e)
+            return False
+        except (KeyError, TypeError) as e:
+            logger.error("Invalid local backup configuration: %s", e)
+            return False
+        except (OSError, IOError) as e:
+            logger.error("File system error during local backup: %s", e)
             return False
 
     def backup_profile(self, profile_name: str) -> bool:
@@ -326,8 +338,11 @@ def main():
     except ImportError as e:
         logger.error("Missing required dependency: %s", e)
         return 1
-    except Exception as e:
-        logger.error("Unexpected error during backup: %s", e, exc_info=True)
+    except (ValueError, TypeError, KeyError) as e:
+        logger.error("Invalid configuration or data: %s", e, exc_info=True)
+        return 1
+    except AttributeError as e:
+        logger.error("Internal error - missing attribute: %s", e, exc_info=True)
         return 1
 
 

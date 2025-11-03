@@ -39,7 +39,7 @@ class AWSBackupManager:
             logger.info("AWS backup completed successfully (placeholder)")
             return True
 
-        except (boto3.exceptions.Boto3Error, 
+        except (boto3.exceptions.Boto3Error,
                 botocore.exceptions.BotoCoreError,
                 botocore.exceptions.ClientError) as e:
             logger.error("AWS backup failed: %s", e)
@@ -47,8 +47,8 @@ class AWSBackupManager:
         except OSError as e:
             logger.error("File system error during AWS backup: %s", e)
             return False
-        except Exception as e:
-            logger.critical("Unexpected error during AWS backup: %s", e, exc_info=True)
+        except (ValueError, TypeError) as e:
+            logger.critical("Invalid configuration or file data for AWS backup: %s", e, exc_info=True)
             return False
 
     def restore_files(self, backup_id: str, target_path: Path) -> bool:
@@ -67,6 +67,6 @@ class AWSBackupManager:
         except (boto3.exceptions.Boto3Error, botocore.exceptions.BotoCoreError) as e:
             logger.error("AWS restore operation failed: %s", e, exc_info=True)
             return False
-        except Exception as e:
-            logger.critical("Unexpected error during AWS restore: %s", e, exc_info=True)
-            raise  # Re-raise unexpected exceptions
+        except (OSError, IOError) as e:
+            logger.critical("File system error during AWS restore: %s", e, exc_info=True)
+            raise

@@ -63,6 +63,9 @@ class ProtonSyncManager:
             logger.info("Proton download completed successfully (placeholder)")
             return True
 
-        except Exception:  # Catch all exceptions and log them
-            logger.exception("Error during Proton download")
+        except (OSError, IOError, FileNotFoundError) as e:
+            logger.exception("File system error during Proton download: %s", e)
+            return False
+        except PermissionError as e:
+            logger.exception("Permission denied during Proton download: %s", e)
             return False
