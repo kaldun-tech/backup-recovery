@@ -30,8 +30,8 @@ mkdir -p ~/.backup-recovery/logs ~/.backup-recovery/summaries
 Copy and customize the configuration template:
 
 ```bash
-cp configs/backup-profiles.yaml configs/my-config.yaml
-# Edit configs/my-config.yaml with your settings
+cp configs/backup-profiles.yaml configs/local/my-config.yaml
+# Edit configs/local/my-config.yaml with your settings
 ```
 
 📖 **For detailed configuration guidance**: See [Configuration Guide](docs/CONFIGURATION_GUIDE.md) for data organization, AWS storage strategies, and hardware setup.
@@ -40,16 +40,10 @@ cp configs/backup-profiles.yaml configs/my-config.yaml
 
 ```bash
 cd scripts
-python backup_orchestrator.py --profile test-profile --config ../configs/test-config.yaml
+python backup_orchestrator.py --profile test-profile --config ../configs/my-config.yaml
 ```
 
-### Test Mode
-
-```bash
-python backup_orchestrator.py --profile test-profile --config ../configs/test-config.yaml --test
-```
-
-## Testing
+### Testing
 
 ```bash
 # Activate virtual environment
@@ -57,6 +51,9 @@ source venv/bin/activate
 
 # Run tests
 python -m pytest tests/ -v
+
+# Run tests with test profile
+python scripts/backup_orchestrator.py --profile test-profile --config configs/test-config.yaml --test
 
 # Run tests with coverage
 python -m pytest tests/ -v --cov=scripts --cov-report=html

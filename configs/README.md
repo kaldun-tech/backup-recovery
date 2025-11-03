@@ -14,7 +14,7 @@ This directory contains backup configuration templates and examples for the back
 Copy one of the template files and customize it:
 
 ```bash
-cp simple-backup.yaml my-backup-config.yaml
+cp simple-backup.yaml local/my-backup-config.yaml
 ```
 
 ### 2. Edit Your Configuration
@@ -27,21 +27,16 @@ Open your new config file and update:
 ### 3. Run Your Backup
 
 ```bash
-backup-recovery --config my-backup-config.yaml
+backup-recovery --config local/my-backup-config.yaml
 ```
 
 ## Personal Configurations
 
 **Important**: Do NOT commit personal or machine-specific configurations to Git.
 
-Store your personal configs in the `local/` folder, which is ignored by Git:
+Store your personal configs in the `local/` folder, which is ignored by Git. Edit local/my-laptop-backup.yaml with your personal paths.
 
-```bash
-cp simple-backup.yaml local/my-laptop-backup.yaml
-# Edit local/my-laptop-backup.yaml with your personal paths
-```
-
-This way your configs stay on your local machine and won't accidentally be committed or exposed when you open source the project.
+This way your configs stay on your local machine and won't accidentally be committed or exposed.
 
 ## Configuration Guide
 
