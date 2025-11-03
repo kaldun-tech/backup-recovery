@@ -1,0 +1,122 @@
+# ============================================================================
+# Simple External Drive Backup Configuration Template
+# ============================================================================
+#
+# This is a template for backing up your Documents and Pictures folders
+# to an external hard drive. It's designed to be simple and straightforward
+# for users getting started with the backup-recovery tool.
+#
+# SETUP INSTRUCTIONS:
+# 1. Replace "$HOME" with your actual home directory path if needed
+#    - On Linux/Mac: Typically /home/username or /Users/username
+#    - On WSL: /mnt/c/Users/username (for Windows user directories)
+#    - Or keep $HOME and let the system expand it automatically
+#
+# 2. Update backup_directory to point to your external drive:
+#    - Linux: /mnt/external or /media/username/drive_name
+#    - Mac: /Volumes/drive_name
+#    - WSL: /mnt/d or /mnt/e (for Windows D: or E: drives)
+#
+# 3. Save this file with a meaningful name (e.g., my-backup-config.yaml)
+#    and run: backup-recovery --config my-backup-config.yaml
+#
+# ============================================================================
+
+# Profile: A named backup configuration you can run
+profiles:
+  simple:
+    # Human-readable name for this backup profile
+    name: "Documents and Pictures Backup"
+
+    # Paths to backup
+    paths:
+      # First backup target: Documents folder
+      - path: "$HOME/Documents"
+        # include: Specify file patterns to backup (glob patterns)
+        #   "**/*" means all files and subdirectories
+        include:
+          - "**/*"
+
+        # exclude: Specify patterns to skip (takes precedence over include)
+        exclude:
+          - "**/.*"           # Hidden files (dot files like .config)
+          - "**/tmp/**"       # Temporary directories
+          - "**/.Trash/**"    # Trash/Recycle bin
+          - "**/node_modules/**"  # Dependencies (can be reinstalled)
+
+      # Second backup target: Pictures folder
+      - path: "$HOME/Pictures"
+        include:
+          - "**/*"
+        exclude:
+          - "**/.*"           # Hidden files
+          - "**/cache/**"     # Cached thumbnails and previews
+          - "**/.Trash/**"    # Trash/Recycle bin
+
+      # ADDITIONAL PATHS (uncomment to enable):
+      # - path: "$HOME/Desktop"
+      #   include:
+      #     - "**/*"
+      #   exclude:
+      #     - "**/.*"
+      # - path: "$HOME/Downloads"
+      #   include:
+      #     - "**/*"
+      #   exclude:
+      #     - "**/.*"
+      #     - "**/incomplete/**"  # Skip unfinished downloads
+
+# ============================================================================
+# STORAGE BACKENDS
+# ============================================================================
+# Choose where to store your backups. Only enable ONE backend at a time.
+
+# AWS S3 Configuration
+# Requires AWS credentials configured in ~/.aws/credentials or environment
+aws:
+  enabled: false
+  # Optional configuration:
+  # bucket: "my-backups"
+  # region: "us-east-1"
+  # encryption: true  # Use server-side encryption
+
+# Proton Drive Configuration
+# Requires Proton credentials configured
+proton:
+  enabled: false
+  # Optional configuration:
+  # encryption: true
+
+# Local External Drive Backup
+# Point this to an external hard drive or NAS mount
+local:
+  enabled: true
+  # IMPORTANT: Update this path to your external drive!
+  # Linux examples:
+  #   /mnt/external
+  #   /media/username/MyDrive
+  #   /mnt/backup
+  # Mac examples:
+  #   /Volumes/MyDrive
+  # WSL examples:
+  #   /mnt/d (Windows D: drive)
+  #   /mnt/e (Windows E: drive)
+  backup_directory: "/mnt/backup"
+
+  # compression: Reduce backup size (slower, but saves space)
+  compression: true
+
+  # encryption: Encrypt backups locally before storing
+  # RECOMMENDED for sensitive data
+  encryption: false
+
+# ============================================================================
+# FILE CLASSIFICATION (Optional)
+# ============================================================================
+# Automatically identify and handle sensitive files specially
+# Leave empty {} if you don't need this feature
+classification:
+  # Files matching these patterns get special handling (encryption, priority, etc.)
+  sensitive: {}
+  # Files matching these patterns are marked as critical (always backup, verify)
+  critical: {}
