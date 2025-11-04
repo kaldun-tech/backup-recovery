@@ -12,7 +12,9 @@
       "Bash(python -m pylint:*)",
       "Bash(pylint:*)",
       "Bash(python3 -m pytest:*)",
-      "Bash(python -m pytest:*)"
+      "Bash(python -m pytest:*)",
+      "Bash(python -m scripts.backup_orchestrator:*)",
+      "Bash(python scripts/backup_orchestrator.py:*)"
     ],
     "deny": [],
     "ask": []

@@ -40,7 +40,7 @@ cp configs/backup-profiles.yaml configs/local/my-config.yaml
 
 ```bash
 cd scripts
-python backup_orchestrator.py --profile test-profile --config ../configs/my-config.yaml
+python backup_orchestrator.py --profile my-profile --config ../configs/local/my-config.yaml
 ```
 
 ### Testing

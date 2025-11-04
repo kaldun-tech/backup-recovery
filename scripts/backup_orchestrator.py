@@ -13,7 +13,14 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 import yaml
-from scripts.proton_sync_manager import ProtonSyncManager
+
+# Handle both module execution (python -m) and direct execution
+try:
+    from .proton_sync_manager import ProtonSyncManager
+except ImportError:
+    # Direct script execution - add parent directory to path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from scripts.proton_sync_manager import ProtonSyncManager
 
 # Configure logging
 def _setup_logging():
@@ -156,8 +163,12 @@ class BackupOrchestrator:
         try:
             logger.info("Starting AWS backup for %d files", len(files))
 
-            # Import AWS backup manager
-            from .aws_backup_manager import AWSBackupManager
+            # Import AWS backup manager with fallback for direct execution
+            try:
+                from .aws_backup_manager import AWSBackupManager
+            except ImportError:
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from scripts.aws_backup_manager import AWSBackupManager
 
             aws_manager = AWSBackupManager(
                 self.config['aws'],
@@ -211,8 +222,12 @@ class BackupOrchestrator:
         try:
             logger.info("Starting local backup for %d critical files", len(files))
 
-            # Import local backup manager
-            from .local_backup_manager import LocalBackupManager
+            # Import local backup manager with fallback for direct execution
+            try:
+                from .local_backup_manager import LocalBackupManager
+            except ImportError:
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from scripts.local_backup_manager import LocalBackupManager
 
             local_manager = LocalBackupManager(
                 self.config['local'],
