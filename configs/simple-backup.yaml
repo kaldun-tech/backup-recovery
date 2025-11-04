@@ -111,12 +111,26 @@ local:
   encryption: false
 
 # ============================================================================
-# FILE CLASSIFICATION (Optional)
+# FILE CLASSIFICATION (Required for multi-tier backups)
 # ============================================================================
-# Automatically identify and handle sensitive files specially
-# Leave empty {} if you don't need this feature
+# Automatically categorize files for appropriate storage tiers:
+# - sensitive: Files that go to encrypted Proton Drive
+# - critical: Files that go to both AWS and local storage (air-gapped backup)
+#
+# Note: If you only use local backup, define 'critical' patterns to specify
+#       which files should be backed up locally. Files not matching any
+#       pattern will only go to AWS (if enabled).
 classification:
-  # Files matching these patterns get special handling (encryption, priority, etc.)
-  sensitive: {}
-  # Files matching these patterns are marked as critical (always backup, verify)
-  critical: {}
+  # Sensitive files - stored in encrypted Proton Drive
+  sensitive:
+    keywords: ["password", "financial", "tax", "medical", "private"]
+    file_extensions: [".key", ".pem", ".p12"]
+
+  # Critical files - stored locally for air-gapped offline protection
+  # Uncomment and customize these patterns for your needs
+  critical:
+    patterns:
+      - "**/Documents/**"     # All documents
+      # - "**/Pictures/**"    # All pictures
+      # - "**/Important/**"   # Specific important folders
+      # - "**/*.pdf"          # All PDF files
