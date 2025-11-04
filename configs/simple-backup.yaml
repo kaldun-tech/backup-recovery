@@ -127,10 +127,11 @@ classification:
     file_extensions: [".key", ".pem", ".p12"]
 
   # Critical files - stored locally for air-gapped offline protection
-  # Uncomment and customize these patterns for your needs
+  # Patterns use glob-style wildcards (* = any characters, ? = single character)
+  # Patterns are matched against the full file path in lowercase
   critical:
     patterns:
-      - "**/Documents/**"     # All documents
-      # - "**/Pictures/**"    # All pictures
-      # - "**/Important/**"   # Specific important folders
-      # - "**/*.pdf"          # All PDF files
+      - "*Documents*"         # All files under Documents folders
+      # - "*Pictures*"        # All files under Pictures folders
+      # - "*.pdf"             # All PDF files
+      # - "*Important*"       # Files with "Important" in the path

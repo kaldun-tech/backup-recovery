@@ -58,7 +58,7 @@ classification:
     keywords: ["password", "financial", "tax", "medical"]
     file_extensions: [".key", ".pem", ".p12"]
   critical:
-    patterns: ["**/Documents/Important/**", "**/Pictures/Family/**"]
+    patterns: ["*Documents*", "*Pictures*"]  # Glob patterns matched against full file paths
 ```
 
 ## Running Backups

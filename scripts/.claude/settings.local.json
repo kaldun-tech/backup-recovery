@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python -m ruff:*)",
-      "Bash(python -m pylint:*)"
+      "Bash(python -m pylint:*)",
+      "Bash(python -m pytest:*)"
     ],
     "deny": [],
     "ask": []

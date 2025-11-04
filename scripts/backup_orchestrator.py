@@ -112,6 +112,8 @@ class BackupOrchestrator:
 
     def _classify_data(self, files: List[Path]) -> Dict[str, List[Path]]:
         """Classify files into appropriate backup tiers"""
+        import fnmatch
+
         classification = {
             'aws_primary': [],
             'proton_sensitive': [],
@@ -134,9 +136,9 @@ class BackupOrchestrator:
                 file_suffix in sensitive_extensions
             )
 
-            # Check if critical
+            # Check if critical using fnmatch for better glob pattern matching
             is_critical = any(
-                file_path.match(pattern) for pattern in critical_patterns
+                fnmatch.fnmatch(file_str, pattern.lower()) for pattern in critical_patterns
             )
 
             if is_sensitive:
