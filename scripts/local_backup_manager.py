@@ -7,6 +7,7 @@ Functional implementation for testing
 import logging
 import shutil
 import json
+import zipfile
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Any
@@ -24,6 +25,8 @@ class LocalBackupManager:
         self.backup_dir = Path(config.get('backup_directory', '/tmp/local-backups'))
         self.compression = config.get('compression', False)
         self.encryption = config.get('encryption', False)
+        self.cleanup_source = config.get('cleanup_source_after_compression', True)
+        self.retention_days = config.get('retention_days', None)
         self.backup_metadata = 'backup-metadata.json'
 
         # Create backup directory
@@ -105,14 +108,94 @@ class LocalBackupManager:
             logger.info(
                 "Local backup completed: %d/%d files successful",
                 successful_files, len(files))
+
+            # Apply compression if enabled
+            if self.compression and successful_files > 0:
+                self._compress_backup(backup_path)
+
+            # Clean up old backups based on retention policy
+            if self.retention_days is not None:
+                self._cleanup_old_backups()
+
             return successful_files > 0
 
         except (OSError, json.JSONEncodeError) as e:
             logger.error("Local backup failed: %s", e, exc_info=True)
             return False
 
+    def _compress_backup(self, backup_path: Path) -> bool:
+        """Compress backup directory to zip file"""
+        try:
+            zip_file = self.backup_dir / f"{self.backup_id}.zip"
+            logger.info("Compressing backup to %s", zip_file)
+
+            with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for file_path in backup_path.rglob('*'):
+                    if file_path.is_file():
+                        # Store relative path in zip
+                        arcname = file_path.relative_to(backup_path)
+                        zf.write(file_path, arcname)
+                        logger.debug("Added to zip: %s", arcname)
+
+            original_size = sum(f.stat().st_size for f in backup_path.rglob('*') if f.is_file())
+            compressed_size = zip_file.stat().st_size
+            compression_ratio = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
+
+            logger.info(
+                "Compression completed: %d bytes -> %d bytes (%.1f%% reduction)",
+                original_size, compressed_size, compression_ratio)
+
+            # Remove source directory if cleanup is enabled
+            if self.cleanup_source:
+                logger.info("Removing uncompressed backup directory: %s", backup_path)
+                shutil.rmtree(backup_path)
+
+            return True
+
+        except (OSError, zipfile.BadZipFile) as e:
+            logger.error("Failed to compress backup: %s", e, exc_info=True)
+            return False
+
+    def _cleanup_old_backups(self) -> None:
+        """Remove backups older than retention_days"""
+        try:
+            from datetime import timedelta
+            cutoff_time = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
+
+            for backup_dir in self.backup_dir.iterdir():
+                if not backup_dir.is_dir():
+                    continue
+
+                metadata_file = backup_dir / self.backup_metadata
+                if not metadata_file.exists():
+                    continue
+
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                        backup_time = datetime.fromisoformat(metadata['timestamp'])
+
+                        if backup_time < cutoff_time:
+                            logger.info(
+                                "Removing backup older than %d days: %s",
+                                self.retention_days, backup_dir.name)
+                            shutil.rmtree(backup_dir)
+
+                except (json.JSONDecodeError, KeyError, ValueError) as e:
+                    logger.error("Failed to parse backup metadata %s: %s", metadata_file, e)
+
+            # Also remove orphaned zip files older than retention period
+            for zip_file in self.backup_dir.glob('*.zip'):
+                zip_mtime = datetime.fromtimestamp(zip_file.stat().st_mtime, tz=timezone.utc)
+                if zip_mtime < cutoff_time:
+                    logger.info("Removing old zip file: %s", zip_file.name)
+                    zip_file.unlink()
+
+        except OSError as e:
+            logger.error("Failed to cleanup old backups: %s", e, exc_info=True)
+
     def restore_files(self, backup_id: str, target_path: Path) -> bool:
-        """Restore files from local backup"""
+        """Restore files from local backup (supports both directories and zip files)"""
         if not self.enabled:
             logger.info("Local restore skipped (disabled)")
             return True
@@ -120,12 +203,57 @@ class LocalBackupManager:
         try:
             logger.info("Local restore starting for backup %s", backup_id)
 
-            # Find backup directory
+            # Check for compressed backup first
+            zip_file = self.backup_dir / f"{backup_id}.zip"
             backup_path = self.backup_dir / backup_id
-            if not backup_path.exists():
-                logger.error("Backup directory not found: %s", backup_path)
+
+            if zip_file.exists():
+                logger.info("Found compressed backup, extracting from %s", zip_file)
+                return self._restore_from_zip(zip_file, target_path, backup_id)
+            elif backup_path.exists():
+                logger.info("Found uncompressed backup directory")
+                return self._restore_from_directory(backup_path, target_path)
+            else:
+                logger.error("Backup not found: %s or %s", backup_path, zip_file)
                 return False
 
+        except (OSError, json.JSONDecodeError, KeyError) as e:
+            logger.error("Local restore failed: %s", e, exc_info=True)
+            return False
+
+    def _restore_from_zip(self, zip_file: Path, target_path: Path, backup_id: str) -> bool:
+        """Restore files from a compressed zip backup"""
+        try:
+            target_path.mkdir(parents=True, exist_ok=True)
+            successful_restores = 0
+
+            with zipfile.ZipFile(zip_file, 'r') as zf:
+                for file_info in zf.filelist:
+                    if not file_info.is_dir():
+                        try:
+                            # Extract file, preserving structure
+                            extracted_path = target_path / file_info.filename
+                            extracted_path.parent.mkdir(parents=True, exist_ok=True)
+
+                            with zf.open(file_info) as source, open(extracted_path, 'wb') as target:
+                                shutil.copyfileobj(source, target)
+
+                            successful_restores += 1
+                            logger.debug("Restored from zip: %s", file_info.filename)
+
+                        except (OSError, KeyError) as e:
+                            logger.error("Failed to restore %s from zip: %s", file_info.filename, e)
+
+            logger.info("Local restore from zip completed: %d files restored", successful_restores)
+            return successful_restores > 0
+
+        except zipfile.BadZipFile as e:
+            logger.error("Failed to read zip file %s: %s", zip_file, e, exc_info=True)
+            return False
+
+    def _restore_from_directory(self, backup_path: Path, target_path: Path) -> bool:
+        """Restore files from an uncompressed backup directory"""
+        try:
             # Read metadata
             metadata_file = backup_path / self.backup_metadata
             if not metadata_file.exists():
@@ -158,18 +286,19 @@ class LocalBackupManager:
                         "Failed to restore %s: %s",
                         file_info.get('source', 'unknown'), e, exc_info=True)
 
-            logger.info("Local restore completed: %d files restored", successful_restores)
+            logger.info("Local restore from directory completed: %d files restored", successful_restores)
             return successful_restores > 0
 
         except (OSError, json.JSONDecodeError, KeyError) as e:
-            logger.error("Local restore failed: %s", e, exc_info=True)
+            logger.error("Local restore from directory failed: %s", e, exc_info=True)
             return False
 
     def list_backups(self) -> List[Dict[str, Any]]:
-        """List available backups"""
+        """List available backups (both compressed and uncompressed)"""
         backups = []
 
         try:
+            # List uncompressed backups (directories with metadata)
             for backup_dir in self.backup_dir.iterdir():
                 if backup_dir.is_dir():
                     metadata_file = backup_dir / self.backup_metadata
@@ -177,13 +306,28 @@ class LocalBackupManager:
                         try:
                             with open(metadata_file, 'r', encoding='utf-8') as f:
                                 metadata = json.load(f)
+                                metadata['compressed'] = False
                                 backups.append(metadata)
                         except (OSError, json.JSONDecodeError) as e:
                             logger.error(
                                 "Failed to read metadata for %s: %s",
                                 backup_dir, e, exc_info=True)
 
+            # List compressed backups (zip files)
+            for zip_file in self.backup_dir.glob('*.zip'):
+                try:
+                    with zipfile.ZipFile(zip_file, 'r') as zf:
+                        metadata_data = zf.read(self.backup_metadata).decode('utf-8')
+                        metadata = json.loads(metadata_data)
+                        metadata['compressed'] = True
+                        metadata['file_size'] = zip_file.stat().st_size
+                        backups.append(metadata)
+                except (zipfile.BadZipFile, KeyError, json.JSONDecodeError, OSError) as e:
+                    logger.error("Failed to read metadata from %s: %s", zip_file, e, exc_info=True)
+
         except OSError as e:
             logger.error("Failed to list backups: %s", e, exc_info=True)
 
+        # Sort by timestamp (newest first)
+        backups.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         return backups

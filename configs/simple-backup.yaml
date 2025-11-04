@@ -103,8 +103,16 @@ local:
   #   /mnt/e (Windows E: drive)
   backup_directory: "/mnt/backup"
 
-  # compression: Reduce backup size (slower, but saves space)
+  # compression: Create a zip file (true) or keep as directory (false)
   compression: true
+
+  # cleanup_source_after_compression: Remove the uncompressed directory after creating zip
+  # Only applies when compression is true
+  cleanup_source_after_compression: true
+
+  # retention_days: Automatically delete backups older than N days (null = keep all)
+  # Example: retention_days: 30  # Keep only the last 30 days of backups
+  retention_days: null
 
   # encryption: Encrypt backups locally before storing
   # RECOMMENDED for sensitive data

@@ -94,6 +94,25 @@ For local backups, ensure your target directory exists:
 mkdir -p /path/to/external/drive/backups
 ```
 
+### Compression and Retention
+
+The local backup supports compression and automatic cleanup:
+
+**Compression**: When enabled, backups are stored in zip files to save space:
+```yaml
+local:
+  compression: true                      # Create zip files
+  cleanup_source_after_compression: true # Remove uncompressed directory after zipping
+```
+
+**Retention Policy**: Automatically delete old backups to save space:
+```yaml
+local:
+  retention_days: 30  # Keep only the last 30 days of backups
+```
+
+Leave `retention_days: null` to keep all backups indefinitely.
+
 ## Troubleshooting
 
 ### Common Issues

@@ -35,6 +35,8 @@ local:
   enabled: true
   backup_directory: "/tmp/local-backups"
   compression: true
+  cleanup_source_after_compression: true
+  retention_days: null
   encryption: false
 
 # Data classification rules
