@@ -37,7 +37,7 @@ Following a simplified 3-2-1 strategy:
 
 Files are automatically routed based on:
 - **Sensitive keywords** in filename/path → Proton Drive
-- **Critical patterns** → AWS + Local (redundant)  
+- **Critical patterns** → AWS + Local (redundant)
 - **Everything else** → AWS only
 
 ## Configuration

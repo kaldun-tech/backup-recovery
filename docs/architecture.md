@@ -36,12 +36,31 @@ Uses a simplified 3-2-1 strategy:
 
 ## Data Flow
 
-```
-Source Files → File Discovery → Classification → Storage Routing
-                     ↓
-              JSON Summary Files (~/.backup-recovery/summaries/)
-                     ↓
-              Log Files (~/.backup-recovery/logs/)
+```mermaid
+graph TD
+    A["Source Files"] -->|Discover| B["Backup Orchestrator"]
+
+    B -->|Classify| C{File Type?}
+
+    C -->|Sensitive| D["Proton Drive<br/>E2E Encrypted"]
+    C -->|Critical| E["AWS S3 Glacier<br/>+ Local Storage"]
+    C -->|Standard| F["AWS S3 Glacier"]
+
+    B -->|Generate| G["Metadata & Logs<br/>~/.backup-recovery/"]
+
+    D --> H["Backup Session"]
+    E --> H
+    F --> H
+    G --> H
+
+    style A fill:#e1f5ff
+    style B fill:#fff3e0
+    style C fill:#fce4ec
+    style D fill:#c8e6c9
+    style E fill:#ffccbc
+    style F fill:#ffccbc
+    style G fill:#b3e5fc
+    style H fill:#fff9c4
 ```
 
 ## File Classification
